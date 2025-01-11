@@ -3,7 +3,7 @@ the backend for my website, decided i needed one because some skid nuked my webh
 
 ## how it works
 
-the webserver im using is apache2 which just takes all traffic directed to /api to the backend with loopback, heres my 000-default.conf
+the webserver im using is apache2 which just takes all traffic directed to /api and sends it to the backend with loopback, heres my 000-default.conf
 
 ```
 
