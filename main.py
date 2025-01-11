@@ -1,16 +1,31 @@
 from flask import Flask, request, jsonify
 import requests
 import os
+import json
 
 app = Flask(__name__)
 
 ip_log = {}
+ip_log_file = "ip_log.json"
 counter_file = "counter.txt"
 webhook_file = "resources/discord/webhook"
+
+
+if not os.path.exists(ip_log_file):
+    with open(ip_log_file, "w") as f:
+        json.dump({}, f)
 
 if not os.path.exists(counter_file):
     with open(counter_file, "w") as f:
         f.write("0")
+
+def load_ip_log():
+    with open(ip_log_file, "r") as f:
+        return json.load(f)
+
+def save_ip_log(ip_log):
+    with open(ip_log_file, "w") as f:
+        json.dump(ip_log, f)
 
 def read_counter():
     with open(counter_file, "r") as f:
@@ -41,10 +56,14 @@ def send(counter):
 def log_ip():
     client_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
 
+    ip_log = load_ip_log()
     if client_ip in ip_log:
         return "Blocked", 403
 
     ip_log[client_ip] = True
+    save_ip_log(ip_log)
+
+
     counter = read_counter()
     counter += 1
     update_counter(counter)
@@ -60,4 +79,4 @@ def get_counter():
     return jsonify({"current_counter": counter})
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="127.0.0.1", port=5000)
