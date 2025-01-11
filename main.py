@@ -1,63 +1,63 @@
 from flask import Flask, request, jsonify
 import requests
 import os
-from flask_cors import CORS
 
 app = Flask(__name__)
 
-CORS(app)
+ip_log = {}
+counter_file = "counter.txt"
+webhook_file = "resources/discord/webhook"
 
-with open(resources/discord/webhook_url, "r") as file:
-    WEBHOOK_URL = file.read().strip()
+if not os.path.exists(counter_file):
+    with open(counter_file, "w") as f:
+        f.write("0")
 
-IP_DATA_FILE = "ip_data.txt"
-COUNTER_FILE = "counter.txt"
+def read_counter():
+    with open(counter_file, "r") as f:
+        return int(f.read())
 
-if os.path.exists(IP_DATA_FILE):
-    with open(IP_DATA_FILE, "r") as f:
-        ip_data = set(f.read().splitlines())
-else:
-    ip_data = set()
+def update_counter(value):
+    with open(counter_file, "w") as f:
+        f.write(str(value))
 
-if os.path.exists(COUNTER_FILE):
-    with open(COUNTER_FILE, "r") as f:
-        counter = int(f.read().strip())
-else:
-    counter = 0
+def read_webhook():
+    if not os.path.exists(webhook_file):
+        print("yap")
+    with open(webhook_file, "r") as f:
+        return f.read().strip()
 
-def save_data():
-    """Save IP data and counter to files."""
-    with open(IP_DATA_FILE, "w") as f:
-        f.write("\n".join(ip_data))
-    with open(COUNTER_FILE, "w") as f:
-        f.write(str(counter))
-
-@app.route("/", methods=["POST", "GET"])
-def handle_request():
-    global counter
-    client_ip = request.remote_addr
-
-    if client_ip in ip_data:
-        return jsonify({"message": "Request blocked", "reason": "IP already sent a request"}), 403
-
-    ip_data.add(client_ip)
-    counter += 1
-    save_data()
-
-    webhook_message = {
-        "content": f"New visitor at tainted-purity.rip. Total unique requests: {counter}."
+def send(counter):
+    webhook_url = read_webhook()
+    message = {
+        "content": f"New visitor. current counter value: {counter}"
     }
     try:
-        requests.post(WEBHOOK_URL, json=webhook_message)
-    except Exception as e:
-        return jsonify({"message": "Failed to send webhook", "error": str(e)}), 500
+        response = requests.post(webhook_url, json=message)
+        response.raise_for_status()
+        print("webhook sent")
+    except requests.exceptions.RequestException as e:
+        print(f"error sending webhook: {e}")
+@app.route("/", methods=["POST"])
+def log_ip():
+    client_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
 
-    return jsonify({"message": "Request successful", "unique_requests": counter})
+    if client_ip in ip_log:
+        return "Blocked", 403
+
+    ip_log[client_ip] = True
+    counter = read_counter()
+    counter += 1
+    update_counter(counter)
+
+    send(counter)
+
+    print(f"Logged IP: {client_ip}, Counter: {counter}")
+    return "Logged", 200
 
 @app.route("/counter", methods=["GET"])
 def get_counter():
-    """Allow clients to request the current counter value."""
+    counter = read_counter()
     return jsonify({"current_counter": counter})
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000)
