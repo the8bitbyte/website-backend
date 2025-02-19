@@ -42,4 +42,6 @@ The backend adds each IP address to a list. If the IP address isn’t on the lis
 
 ### Potental issue
 
-I’m aware this could lead to issues with VPNs. Someone could use a VPN to repeatedly increment the counter, and if someone already visited the website using the same VPN server as you, the view wouldn’t be counted. Despite this, the percentage of users on a VPN is low, so I’m not too concerned.
+I’m aware this could lead to issues with VPNs. ~~Someone could use a VPN to repeatedly increment the counter~~, and if someone already visited the website using the same VPN server as you, the view wouldn’t be counted. Despite this, the percentage of users on a VPN is low, so I’m not too concerned.
+
+(added vpn detection)
