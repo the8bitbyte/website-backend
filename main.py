@@ -10,6 +10,22 @@ ip_log_file = "ip_log.json"
 counter_file = "counter.txt"
 webhook_file = "resources/discord/webhook"
 
+PROXYCHECK_API_URL = "http://proxycheck.io/v2/{ip}?key={api_key}&vpn=1&asn=1"
+API_KEY = "sillers!"
+
+def is_proxy(ip):
+    try:
+        url = PROXYCHECK_API_URL.format(ip=ip, api_key=API_KEY)
+        response = requests.get(url)
+        data = response.json()
+
+        if ip in data and data[ip].get("proxy") == "yes":
+            print(f"Blocked proxy IP: {ip} (Type: {data[ip].get('type')})")
+            return True
+    except Exception as e:
+        print(f"Error checking proxy status: {e}")
+    return False
+
 
 if not os.path.exists(ip_log_file):
     with open(ip_log_file, "w") as f:
@@ -59,6 +75,9 @@ def log_ip():
     ip_log = load_ip_log()
     if client_ip in ip_log:
         return "Blocked", 403
+
+    if is_proxy(client_ip):
+        return jsonify({"error": "Proxy access denied"}), 403  # thank you to "itookashitintheurinal" on discord. ill be adding cloudflare too
 
     ip_log[client_ip] = True
     save_ip_log(ip_log)
